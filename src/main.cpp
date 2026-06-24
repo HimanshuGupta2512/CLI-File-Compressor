@@ -36,15 +36,28 @@ int main(int argc, char* argv[]) {
         if (mode == "-c") {
             std::cout << "Building frequency map...\n";
             auto freq_map = Huffman::build_frequency_map(input_file);
+            
+            if (freq_map.empty()) {
+                {
+                    BitWriter writer(output_file);
+                    writer.write_header(freq_map); // writes uint64_t 0
+                    writer.flush();
+                }
+
+                std::ifstream orig_file(input_file, std::ios::binary | std::ios::ate);
+                std::ifstream comp_file(output_file, std::ios::binary | std::ios::ate);
+
+                const size_t input_size = static_cast<size_t>(orig_file.tellg());
+                const size_t output_size = static_cast<size_t>(comp_file.tellg());
+
+                bench.stop("Phase 4: Compression", input_size, output_size);
+                return 0;
+            }
+
             std::cout << "Unique bytes found: " << freq_map.size() << "\n";
             
             std::cout << "Constructing Huffman tree...\n";
             auto root = Huffman::build_huffman_tree(freq_map);
-            
-            if (!root) {
-                std::cout << "Tree is empty (file might be empty).\n";
-                return 0;
-            }
             
             std::cout << "Generating prefix codes...\n";
             auto codes = Huffman::generate_codes(root.get());
