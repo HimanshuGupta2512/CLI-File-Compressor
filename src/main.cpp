@@ -5,6 +5,7 @@
 #include "benchmark.hpp"
 #include "huffman.hpp"
 #include "bit_writer.hpp"
+#include "bit_reader.hpp"
 
 void print_usage(const char* program_name) {
     std::cout << "Usage: " << program_name << " <mode> <input_file> <output_file>\n"
@@ -80,6 +81,62 @@ int main(int argc, char* argv[]) {
             size_t output_size = static_cast<size_t>(comp_file.tellg());
 
             const auto elapsed = bench.stop("Phase 3: Compression", input_size, output_size);
+        } else if (mode == "-d") {
+            std::cout << "Starting decompression...\n";
+            BitReader reader(input_file);
+            
+            std::cout << "Reading header...\n";
+            auto freq_map = reader.read_header();
+            
+            std::cout << "Reconstructing Huffman tree...\n";
+            auto root = Huffman::build_huffman_tree(freq_map);
+            
+            if (!root) {
+                std::cout << "Tree is empty (file might be empty).\n";
+                std::ofstream out_file(output_file, std::ios::binary | std::ios::trunc);
+                return 0;
+            }
+            
+            uint64_t total_chars = 0;
+            for (const auto& [byte, freq] : freq_map) {
+                total_chars += freq;
+            }
+            std::cout << "Total characters to decode: " << total_chars << "\n";
+            
+            std::ofstream out_file(output_file, std::ios::binary | std::ios::trunc);
+            if (!out_file.is_open()) {
+                throw std::runtime_error("Error: Could not open file for writing decompression - " + output_file);
+            }
+            
+            const HuffmanNode* current_node = root.get();
+            bool bit;
+            uint64_t decoded_chars = 0;
+            
+            // Critical Padding Trap: stop strictly when decoded_chars == total_chars
+            while (decoded_chars < total_chars && reader.read_bit(bit)) {
+                if (bit) {
+                    current_node = current_node->right.get();
+                } else {
+                    current_node = current_node->left.get();
+                }
+                
+                // Leaf node
+                if (!current_node->left && !current_node->right) {
+                    out_file.put(static_cast<char>(current_node->byte));
+                    decoded_chars++;
+                    current_node = root.get(); // Reset traversal
+                }
+            }
+            
+            out_file.close();
+            
+            std::ifstream orig_comp_file(input_file, std::ios::binary | std::ios::ate);
+            size_t input_size = static_cast<size_t>(orig_comp_file.tellg());
+            
+            std::ifstream decomp_file(output_file, std::ios::binary | std::ios::ate);
+            size_t output_size = static_cast<size_t>(decomp_file.tellg());
+            
+            const auto elapsed = bench.stop("Phase 4: Decompression", input_size, output_size);
         }
         
     } catch (const std::exception& e) {
