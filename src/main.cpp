@@ -3,6 +3,7 @@
 #include <vector>
 #include "io_utils.hpp"
 #include "benchmark.hpp"
+#include "huffman.hpp"
 
 void print_usage(const char* program_name) {
     std::cout << "Usage: " << program_name << " <mode> <input_file> <output_file>\n"
@@ -30,17 +31,30 @@ int main(int argc, char* argv[]) {
     try {
         Benchmark bench;
         
-        // For Phase 1, we just test binary I/O (copying file directly)
-        std::cout << "Reading input file...\n";
-        std::vector<uint8_t> data = IOUtils::read_file(input_file);
-        size_t input_size = data.size();
-        
-        std::cout << "Writing output file...\n";
-        // To test I/O correctness, we write the data exactly as read.
-        IOUtils::write_file(output_file, data);
-        size_t output_size = data.size();
-        
-        const auto elapsed = bench.stop("Phase 1: I/O Copy", input_size, output_size);
+        if (mode == "-c") {
+            std::cout << "Building frequency map...\n";
+            auto freq_map = Huffman::build_frequency_map(input_file);
+            std::cout << "Unique bytes found: " << freq_map.size() << "\n";
+            
+            std::cout << "Constructing Huffman tree...\n";
+            auto root = Huffman::build_huffman_tree(freq_map);
+            
+            if (root) {
+                std::cout << "Root node frequency (total bytes): " << root->freq << "\n";
+            } else {
+                std::cout << "Tree is empty (file might be empty).\n";
+            }
+            
+            std::cout << "Reading input file for copy...\n";
+            std::vector<uint8_t> data = IOUtils::read_file(input_file);
+            size_t input_size = data.size();
+            
+            std::cout << "Writing output file...\n";
+            IOUtils::write_file(output_file, data);
+            size_t output_size = data.size();
+            
+            const auto elapsed = bench.stop("Phase 2: Tree Construction", input_size, output_size);
+        }
         
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";

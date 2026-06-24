@@ -8,4 +8,5 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Strict C++17
 add_executable(huffman_compressor
     src/main.cpp
     src/io_utils.cpp
+    src/huffman.cpp
 )
