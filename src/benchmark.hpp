@@ -12,14 +12,14 @@ public:
         start_time = std::chrono::high_resolution_clock::now();
     }
     
-    void stop(const std::string& operation, size_t input_size, size_t output_size = 0) {
+    std::chrono::milliseconds stop(const std::string& operation, size_t input_size, size_t output_size = 0) {
         auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        double seconds = duration / 1000.0;
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+        double seconds = duration.count() / 1000.0;
         
         std::cout << "--- Benchmark Results ---\n";
         std::cout << "Operation: " << operation << "\n";
-        std::cout << "Time elapsed: " << duration << " ms\n";
+        std::cout << "Time elapsed: " << duration.count() << " ms\n";
         
         if (seconds > 0) {
             double mb = (input_size / 1024.0 / 1024.0);
@@ -32,5 +32,6 @@ public:
                       << input_size << " bytes -> " << output_size << " bytes)\n";
         }
         std::cout << "-------------------------\n";
+        return duration;
     }
 };

@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
         IOUtils::write_file(output_file, data);
         size_t output_size = data.size();
         
-        bench.stop("Phase 1: I/O Copy", input_size, output_size);
+        const auto elapsed = bench.stop("Phase 1: I/O Copy", input_size, output_size);
         
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";
