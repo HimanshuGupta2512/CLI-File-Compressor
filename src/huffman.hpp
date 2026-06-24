@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <cstdint>
+#include <vector>
 
 struct HuffmanNode {
     unsigned char byte;

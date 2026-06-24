@@ -86,6 +86,15 @@ namespace {
 
 CodeMap generate_codes(const HuffmanNode* root) {
     CodeMap codes;
+    if (!root) {
+        return codes;
+    }
+
+    if (!root->left && !root->right) {
+        codes[root->byte] = std::vector<bool>{false};
+        return codes;
+    }
+
     std::vector<bool> current_code;
     generate_codes_recursive(root, current_code, codes);
     return codes;
