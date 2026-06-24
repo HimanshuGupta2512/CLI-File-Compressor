@@ -50,4 +50,5 @@ void BitWriter::flush() {
         current_byte = 0;
         bit_count = 0;
     }
+    file.flush();
 }

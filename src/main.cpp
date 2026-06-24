@@ -49,28 +49,36 @@ int main(int argc, char* argv[]) {
             auto codes = Huffman::generate_codes(root.get());
             
             std::cout << "Compressing and writing to output file...\n";
-            BitWriter writer(output_file);
-            writer.write_header(freq_map);
-            
-            std::ifstream in_file(input_file, std::ios::binary);
-            const size_t BUFFER_SIZE = 8192;
-            std::vector<char> buffer(BUFFER_SIZE);
-            
-            while (in_file.read(buffer.data(), BUFFER_SIZE) || in_file.gcount() > 0) {
-                std::streamsize bytes_read = in_file.gcount();
-                for (std::streamsize i = 0; i < bytes_read; ++i) {
-                    unsigned char byte = static_cast<unsigned char>(buffer[i]);
-                    writer.write_bits(codes[byte]);
+
+            {
+                BitWriter writer(output_file);
+                writer.write_header(freq_map);
+
+                std::ifstream in_file(input_file, std::ios::binary);
+                if (!in_file.is_open()) {
+                    throw std::runtime_error("Error: Could not open file for compression - " + input_file);
                 }
-            }
-            writer.flush();
-            
+
+                const size_t BUFFER_SIZE = 8192;
+                std::vector<char> buffer(BUFFER_SIZE);
+
+                while (in_file.read(buffer.data(), BUFFER_SIZE) || in_file.gcount() > 0) {
+                    std::streamsize bytes_read = in_file.gcount();
+                    for (std::streamsize i = 0; i < bytes_read; ++i) {
+                        unsigned char byte = static_cast<unsigned char>(buffer[i]);
+                        writer.write_bits(codes.at(byte));
+                    }
+                }
+
+                writer.flush();
+            } // BitWriter destructor closes the file before size measurement.
+
             std::ifstream orig_file(input_file, std::ios::binary | std::ios::ate);
-            size_t input_size = orig_file.tellg();
-            
             std::ifstream comp_file(output_file, std::ios::binary | std::ios::ate);
-            size_t output_size = comp_file.tellg();
-            
+
+            size_t input_size = static_cast<size_t>(orig_file.tellg());
+            size_t output_size = static_cast<size_t>(comp_file.tellg());
+
             const auto elapsed = bench.stop("Phase 3: Compression", input_size, output_size);
         }
         
