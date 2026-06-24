@@ -39,8 +39,12 @@ std::unique_ptr<HuffmanNode> build_huffman_tree(const std::unordered_map<unsigne
         heap.push_back(std::make_unique<HuffmanNode>(byte, freq));
     }
 
-    auto comp = [](const std::unique_ptr<HuffmanNode>& a, const std::unique_ptr<HuffmanNode>& b) {
-        return a->freq > b->freq; // min-heap means > operator
+    auto comp = [](const std::unique_ptr<HuffmanNode>& a,
+                   const std::unique_ptr<HuffmanNode>& b) {
+        if (a->freq != b->freq) {
+            return a->freq > b->freq;
+        }
+        return a->min_byte > b->min_byte;
     };
 
     std::make_heap(heap.begin(), heap.end(), comp);

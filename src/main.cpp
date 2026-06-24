@@ -1,6 +1,6 @@
 #include <iostream>
-#include <string>
 #include <vector>
+#include <algorithm>
 #include "io_utils.hpp"
 #include "benchmark.hpp"
 #include "huffman.hpp"
@@ -108,23 +108,38 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Error: Could not open file for writing decompression - " + output_file);
             }
             
-            const HuffmanNode* current_node = root.get();
-            bool bit;
-            uint64_t decoded_chars = 0;
-            
-            // Critical Padding Trap: stop strictly when decoded_chars == total_chars
-            while (decoded_chars < total_chars && reader.read_bit(bit)) {
-                if (bit) {
-                    current_node = current_node->right.get();
-                } else {
-                    current_node = current_node->left.get();
+            if (!root->left && !root->right) {
+                constexpr uint64_t BUFFER_SIZE = 8192;
+                std::vector<char> buffer(
+                    static_cast<size_t>(std::min<uint64_t>(BUFFER_SIZE, total_chars)),
+                    static_cast<char>(root->byte)
+                );
+
+                uint64_t remaining = total_chars;
+                while (remaining > 0) {
+                    const auto chunk = static_cast<std::streamsize>(
+                        std::min<uint64_t>(buffer.size(), remaining)
+                    );
+                    out_file.write(buffer.data(), chunk);
+                    remaining -= static_cast<uint64_t>(chunk);
                 }
-                
-                // Leaf node
-                if (!current_node->left && !current_node->right) {
-                    out_file.put(static_cast<char>(current_node->byte));
-                    decoded_chars++;
-                    current_node = root.get(); // Reset traversal
+            } else {
+                const HuffmanNode* current_node = root.get();
+                bool bit;
+                uint64_t decoded_chars = 0;
+
+                while (decoded_chars < total_chars && reader.read_bit(bit)) {
+                    current_node = bit ? current_node->right.get() : current_node->left.get();
+
+                    if (!current_node->left && !current_node->right) {
+                        out_file.put(static_cast<char>(current_node->byte));
+                        ++decoded_chars;
+                        current_node = root.get();
+                    }
+                }
+
+                if (decoded_chars != total_chars) {
+                    throw std::runtime_error("Error: Compressed payload ended before all bytes were decoded.");
                 }
             }
             

@@ -5,19 +5,24 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 
 struct HuffmanNode {
     unsigned char byte;
     uint64_t freq;
+    unsigned char min_byte;
     std::unique_ptr<HuffmanNode> left;
     std::unique_ptr<HuffmanNode> right;
-    
-    // Leaf node constructor
-    HuffmanNode(unsigned char b, uint64_t f) : byte(b), freq(f), left(nullptr), right(nullptr) {}
-    
-    // Internal node constructor
+
+    HuffmanNode(unsigned char b, uint64_t f)
+        : byte(b), freq(f), min_byte(b), left(nullptr), right(nullptr) {}
+
     HuffmanNode(std::unique_ptr<HuffmanNode> l, std::unique_ptr<HuffmanNode> r)
-        : byte(0), freq(l->freq + r->freq), left(std::move(l)), right(std::move(r)) {}
+        : byte(0),
+          freq(l->freq + r->freq),
+          min_byte(std::min(l->min_byte, r->min_byte)),
+          left(std::move(l)),
+          right(std::move(r)) {}
 };
 
 namespace Huffman {
