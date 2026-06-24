@@ -4,6 +4,7 @@
 #include "io_utils.hpp"
 #include "benchmark.hpp"
 #include "huffman.hpp"
+#include "bit_writer.hpp"
 
 void print_usage(const char* program_name) {
     std::cout << "Usage: " << program_name << " <mode> <input_file> <output_file>\n"
@@ -39,21 +40,38 @@ int main(int argc, char* argv[]) {
             std::cout << "Constructing Huffman tree...\n";
             auto root = Huffman::build_huffman_tree(freq_map);
             
-            if (root) {
-                std::cout << "Root node frequency (total bytes): " << root->freq << "\n";
-            } else {
+            if (!root) {
                 std::cout << "Tree is empty (file might be empty).\n";
+                return 0;
             }
             
-            std::cout << "Reading input file for copy...\n";
-            std::vector<uint8_t> data = IOUtils::read_file(input_file);
-            size_t input_size = data.size();
+            std::cout << "Generating prefix codes...\n";
+            auto codes = Huffman::generate_codes(root.get());
             
-            std::cout << "Writing output file...\n";
-            IOUtils::write_file(output_file, data);
-            size_t output_size = data.size();
+            std::cout << "Compressing and writing to output file...\n";
+            BitWriter writer(output_file);
+            writer.write_header(freq_map);
             
-            const auto elapsed = bench.stop("Phase 2: Tree Construction", input_size, output_size);
+            std::ifstream in_file(input_file, std::ios::binary);
+            const size_t BUFFER_SIZE = 8192;
+            std::vector<char> buffer(BUFFER_SIZE);
+            
+            while (in_file.read(buffer.data(), BUFFER_SIZE) || in_file.gcount() > 0) {
+                std::streamsize bytes_read = in_file.gcount();
+                for (std::streamsize i = 0; i < bytes_read; ++i) {
+                    unsigned char byte = static_cast<unsigned char>(buffer[i]);
+                    writer.write_bits(codes[byte]);
+                }
+            }
+            writer.flush();
+            
+            std::ifstream orig_file(input_file, std::ios::binary | std::ios::ate);
+            size_t input_size = orig_file.tellg();
+            
+            std::ifstream comp_file(output_file, std::ios::binary | std::ios::ate);
+            size_t output_size = comp_file.tellg();
+            
+            const auto elapsed = bench.stop("Phase 3: Compression", input_size, output_size);
         }
         
     } catch (const std::exception& e) {

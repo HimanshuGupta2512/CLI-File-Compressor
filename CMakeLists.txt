@@ -9,4 +9,5 @@ add_executable(huffman_compressor
     src/main.cpp
     src/io_utils.cpp
     src/huffman.cpp
+    src/bit_writer.cpp
 )

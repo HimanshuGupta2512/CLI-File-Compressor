@@ -25,4 +25,8 @@ namespace Huffman {
     
     // Constructs the Huffman tree using a min-heap
     std::unique_ptr<HuffmanNode> build_huffman_tree(const std::unordered_map<unsigned char, uint64_t>& freq_map);
+
+    // Generates Huffman codes from the tree
+    using CodeMap = std::unordered_map<unsigned char, std::vector<bool>>;
+    CodeMap generate_codes(const HuffmanNode* root);
 }

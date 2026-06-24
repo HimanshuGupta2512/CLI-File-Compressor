@@ -61,4 +61,34 @@ std::unique_ptr<HuffmanNode> build_huffman_tree(const std::unordered_map<unsigne
     return std::move(heap.front());
 }
 
+namespace {
+    void generate_codes_recursive(const HuffmanNode* node, std::vector<bool>& current_code, CodeMap& codes) {
+        if (!node) return;
+        
+        if (!node->left && !node->right) {
+            codes[node->byte] = current_code;
+            return;
+        }
+        
+        if (node->left) {
+            current_code.push_back(false);
+            generate_codes_recursive(node->left.get(), current_code, codes);
+            current_code.pop_back();
+        }
+        
+        if (node->right) {
+            current_code.push_back(true);
+            generate_codes_recursive(node->right.get(), current_code, codes);
+            current_code.pop_back();
+        }
+    }
+}
+
+CodeMap generate_codes(const HuffmanNode* root) {
+    CodeMap codes;
+    std::vector<bool> current_code;
+    generate_codes_recursive(root, current_code, codes);
+    return codes;
+}
+
 }
